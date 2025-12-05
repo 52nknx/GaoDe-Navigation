@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>高德地图导航系统 - 结课大作业</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <style>
+    /* 保持原有样式不变 */
+    body { 
+      padding-bottom: 60px;
+      background: linear-gradient(135deg, #f5f7fa 0%, #e4eaf5 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1400px;
+      position: relative;
+    }
+    .student-info {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 8px;
+      padding: 10px 20px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-left: 4px solid #165DFF;
+      animation: fadeIn 0.8s ease;
+    }
+    .student-info .info-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .student-info .info-left i {
+      color: #165DFF;
+      font-size: 1.5rem;
+    }
+    .student-info .info-right {
+      color: #666;
+      font-size: 0.9rem;
+    }
+    #mapContainer { 
+      width: 100%; 
+      height: 600px; 
+      margin-top: 15px; 
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+      overflow: hidden;
+      animation: zoomIn 0.6s ease;
+    }
+    #mapContainer:hover {
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+    .controls { 
+      margin: 15px 0; 
+      padding: 20px; 
+      background: white; 
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      transition: all 0.3s ease;
+      animation: fadeInUp 0.8s ease;
+    }
+    .controls:hover {
+      box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+      transform: translateY(-2px);
+    }
+    .small-muted { 
+      font-size: 0.85rem; 
+      color: #666;
+    }
+    .page-title {
+      color: #2d3748;
+      font-weight: 600;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #e5e7eb;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+    }
+    .page-title::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      width: 80px;
+      height: 3px;
+      background: #165DFF;
+      border-radius: 3px;
+    }
+    .page-title i {
+      color: #165DFF;
+      font-size: 1.2em;
+    }
+    .btn {
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: all 0.5s ease;
+    }
+    .btn:hover::after {
+      left: 100%;
+    }
+    .btn-primary {
+      background-color: #165DFF;
+      border-color: #165DFF;
+    }
+    .btn-primary:hover {
+      background-color: #0E42D2;
+      border-color: #0E42D2;
+      transform: translateY(-2px);
+    }
+    .btn-success {
+      background-color: #00B42A;
+      border-color: #00B42A;
+    }
+    .btn-success:hover {
+      background-color: #009A22;
+      border-color: #009A22;
+      transform: translateY(-2px);
+    }
+    .btn-info {
+      background-color: #86909C;
+      border-color: #86909C;
+    }
+    .btn-info:hover {
+      background-color: #727E8C;
+      border-color: #727E8C;
+      transform: translateY(-2px);
+    }
+    .btn-secondary {
+      background-color: #F2F3F5;
+      color: #4E5969;
+      border-color: #E5E6EB;
+    }
+    .btn-secondary:hover {
+      background-color: #E5E6EB;
+      color: #4E5969;
+      border-color: #D1D3D7;
+      transform: translateY(-2px);
+    }
+    .form-control {
+      border-radius: 6px;
+      border: 1px solid #E5E6EB;
+      transition: all 0.2s ease;
+      height: 38px;
+      position: relative;
+    }
+    .form-control:focus {
+      border-color: #165DFF;
+      box-shadow: 0 0 0 3px rgba(22, 93, 255, 0.15);
+      outline: none;
+      transform: translateY(-1px);
+    }
+    .input-group {
+      height: 38px;
+    }
+    .input-group-text {
+      background-color: #F7F8FA;
+      border-color: #E5E6EB;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      padding: 0;
+      transition: all 0.2s ease;
+    }
+    .input-group:focus-within .input-group-text {
+      background-color: #f0f5ff;
+      border-color: #165DFF;
+      color: #165DFF;
+    }
+    .action-buttons {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px dashed #F2F3F5;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .coords-panel {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      padding: 15px;
+      margin-top: 15px;
+      border-left: 4px solid #00B42A;
+      overflow: hidden;
+      animation: fadeInUp 0.8s ease 0.3s both;
+    }
+    .coords-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .coords-title {
+      font-weight: 600;
+      color: #2d3748;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 0;
+    }
+    .coords-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .copy-btn {
+      background: #f5f7fa;
+      border: 1px solid #e5e6eb;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 0.8rem;
+      color: #4E5969;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .copy-btn:hover {
+      background: #e9ecef;
+      color: #165DFF;
+      transform: translateY(-1px);
+    }
+    .coords-cards {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    .coords-card {
+      flex: 1;
+      min-width: 280px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      padding: 12px;
+      transition: all 0.3s ease;
+    }
+    .coords-card:hover {
+      background: #f0f5ff;
+      transform: translateY(-3px);
+      box-shadow: 0 4px 8px rgba(22, 93, 255, 0.08);
+    }
+    .coords-card-title {
+      font-size: 0.9rem;
+      color: #4E5969;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #e5e6eb;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .coords-card-title i {
+      font-size: 0.9em;
+    }
+    .coords-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .coords-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .coords-label {
+      font-size: 0.8rem;
+      color: #666;
+      margin-bottom: 2px;
+    }
+    .coords-value {
+      font-size: 0.9rem;
+      color: #2d3748;
+      font-family: 'Courier New', monospace;
+      word-break: break-all;
+      background: white;
+      padding: 4px 6px;
+      border-radius: 4px;
+      border: 1px solid #f0f2f5;
+      transition: all 0.2s ease;
+    }
+    .route-summary {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed #e5e6eb;
+    }
+    .summary-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #4E5969;
+      font-size: 0.85rem;
+      transition: all 0.2s ease;
+    }
+    .summary-item:hover {
+      color: #165DFF;
+      transform: translateY(-1px);
+    }
+    .summary-item i {
+      color: #165DFF;
+    }
+    .summary-value {
+      font-weight: 500;
+      color: #2d3748;
+    }
+    .footer {
+      margin-top: 30px;
+      text-align: center;
+      padding: 15px 0;
+    }
+    .loader-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      transition: opacity 0.5s ease, visibility 0.5s ease;
+    }
+    .loader {
+      width: 48px;
+      height: 48px;
+      border: 5px solid #165DFF;
+      border-bottom-color: transparent;
+      border-radius: 50%;
+      animation: rotation 1s linear infinite;
+    }
+    .route-polyline {
+      transition: all 0.3s ease;
+    }
+    .route-polyline.short-distance {
+      strokeWeight: 10 !important;
+      strokeOpacity: 0.95 !important;
+      strokeDasharray: none !important;
+    }
+    .route-polyline-border {
+      strokeWeight: 14 !important;
+      strokeOpacity: 0.3 !important;
+      zIndex: 49 !important;
+    }
+    @keyframes rotation {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes zoomIn {
+      from { opacity: 0; transform: scale(0.98); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    @keyframes pulse {
+      0% { strokeWeight: 8; }
+      50% { strokeWeight: 12; }
+      100% { strokeWeight: 8; }
+    }
+    .route-polyline.pulse-animation {
+      animation: pulse 2s infinite ease-in-out;
+    }
+    @media (max-width: 992px) {
+      .route-mode-selector {
+        margin-top: 10px;
+      }
+      .tip-container {
+        margin-left: 0;
+        margin-top: 8px;
+        width: 100%;
+        justify-content: flex-start;
+      }
+      .coords-grid {
+        grid-template-columns: 1fr;
+      }
+      .student-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+    }
+    @media (max-width: 768px) {
+      #mapContainer {
+        height: 400px;
+      }
+      .controls {
+        padding: 15px;
+      }
+      .row {
+        gap: 10px !important;
+      }
+      .operation-buttons {
+        flex-direction: column;
+        width: 100%;
+      }
+      .operation-buttons .btn {
+        width: 100%;
+        min-width: auto;
+      }
+      .coords-cards {
+        flex-direction: column;
+      }
+      .coords-card {
+        min-width: auto;
+      }
+    }
+    @media (max-width: 576px) {
+      .action-buttons {
+        justify-content: center;
+      }
+      .page-title {
+        font-size: 1.4rem;
+      }
+      .controls {
+        padding: 12px;
+      }
+      .route-summary {
+        flex-direction: column;
+        gap: 6px;
+      }
+      .student-info .info-left {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+    }
+    .copy-toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(0, 180, 42, 0.9);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      transform: translateY(10px);
+    }
+    .copy-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .start-tip {
+      background-color: rgba(22, 93, 255, 0.9);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      transition: all 0.3s ease;
+      opacity: 0;
+      transform: translateY(-10px);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .start-tip.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .loading-tip {
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top: 2px solid white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .route-mode-selector {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      background-color: #f8f9fa;
+      border-radius: 6px;
+      border: 1px solid #e5e6eb;
+      height: 38px;
+      transition: all 0.2s ease;
+    }
+    .route-mode-selector:focus-within {
+      border-color: #165DFF;
+      box-shadow: 0 0 0 3px rgba(22, 93, 255, 0.1);
+    }
+    .route-mode-selector label {
+      margin-bottom: 0;
+      font-weight: 500;
+      color: #4E5969;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+    .form-select {
+      border-radius: 6px;
+      border: 1px solid #E5E6EB;
+      transition: all 0.2s ease;
+      height: 30px;
+      padding: 0 8px;
+      font-size: 0.9rem;
+    }
+    .form-select:focus {
+      border-color: #165DFF;
+      box-shadow: 0 0 0 3px rgba(22, 93, 255, 0.1);
+      outline: none;
+    }
+    .operation-buttons {
+      display: flex;
+      gap: 8px;
+    }
+    .operation-buttons .btn {
+      flex: 1;
+      min-width: 100px;
+    }
+    .tip-container {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+  </style>
+  <!-- 高德 JS API v2.0 -->
+  <script src="https://webapi.amap.com/maps?v=2.0&key=18ebde1f5561606c635141c85bd2ead4"></script>
+</head>
+<body class="container mt-4">
+  <!-- 页面加载动画 -->
+  <div class="loader-container" id="loaderContainer">
+    <div class="loader"></div>
+  </div>
+
+  <!-- 个人信息栏 -->
+  <div class="student-info">
+    <div class="info-left">
+      <i class="bi bi-person-circle"></i>
+      <div>
+        <strong>学号：2313043032</strong>
+        <span class="ms-3">姓名：白福春</span>
+      </div>
+    </div>
+    <div class="info-right">
+      <i class="bi bi-book"></i> 导航学原理 - 结课大作业
+    </div>
+  </div>
+
+  <h3 class="page-title">
+    <i class="bi bi-map-fill"></i> 高德地图导航系统
+  </h3>
+
+  <div class="controls">
+    <div class="row g-3">
+      <div class="col-lg-4 col-md-12">
+        <div class="input-group">
+          <span class="input-group-text">
+            <i class="bi bi-geo-alt text-danger"></i>
+          </span>
+          <input id="startInput" class="form-control" placeholder="输入起点地址或坐标（如：北京市朝阳区）">
+        </div>
+      </div>
+      <div class="col-lg-4 col-md-12">
+        <div class="input-group">
+          <span class="input-group-text">
+            <i class="bi bi-flag text-blue"></i>
+          </span>
+          <input id="endInput" class="form-control" placeholder="输入终点地址或坐标（如：北京市海淀区）">
+        </div>
+      </div>
+      <div class="col-lg-4 col-md-12">
+        <div class="d-flex gap-2 flex-wrap">
+          <!-- 步行/驾车选择器 -->
+          <div class="route-mode-selector flex-grow-1 min-w-[200px]">
+            <label for="routeMode"><i class="bi bi-person-walking"></i> 出行方式：</label>
+            <select id="routeMode" class="form-select form-select-sm">
+              <option value="driving" selected>驾车</option>
+              <option value="walking">步行</option>
+            </select>
+          </div>
+          <div class="operation-buttons flex-grow-1 min-w-[180px]">
+            <button id="btnSearch" class="btn btn-primary">
+              <i class="bi bi-search"></i> 搜索路线
+            </button>
+            <button id="btnClear" class="btn btn-secondary">
+              <i class="bi bi-trash"></i> 清空
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="action-buttons">
+      <button id="btnExportKML" class="btn btn-success">
+        <i class="bi bi-download"></i> 导出KML（Google Earth）
+      </button>
+      <button id="btnExportJSON" class="btn btn-info">
+        <i class="bi bi-file-code"></i> 导出JSON（开发用）
+      </button>
+      <div class="tip-container small-muted">
+        <i class="bi bi-info-circle"></i>
+        <span>提示：点击地图可将该位置设为起点并查看地址信息</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="mapContainer"></div>
+
+  <!-- 坐标信息面板容器 -->
+  <div id="coordsPanelContainer"></div>
+
+  <!-- 简化版页脚 -->
+  <div class="footer"></div>
+
+  <!-- 提示框元素 -->
+  <div id="startTip" class="start-tip">
+    <i class="bi bi-check-circle"></i> 已将该位置设为起点
+  </div>
+  <div id="loadingTip" class="loading-tip" style="display: none;">
+    <div class="spinner"></div>
+    <span>正在获取您的位置...</span>
+  </div>
+  <div id="copyToast" class="copy-toast">复制成功！</div>
+
+  <script>
+    // 页面加载完成后隐藏加载动画
+    window.addEventListener('load', function() {
+      setTimeout(() => {
+        const loaderContainer = document.getElementById('loaderContainer');
+        loaderContainer.style.opacity = '0';
+        setTimeout(() => {
+          loaderContainer.style.visibility = 'hidden';
+        }, 500);
+      }, 800);
+    });
+
+    // 全局变量
+    let map, startMarker, endMarker, pathLine, pathBorderLine, simMarker, simTimer;
+
+    function initMap() {
+      if (!window.AMap) {
+        alert('AMap SDK 未加载，请检查网络或 API Key');
+        return;
+      }
+      console.log('AMap 版本：', AMap.v);
+
+      map = new AMap.Map('mapContainer', {
+        zoom: 15,
+        viewMode: '2D',
+        resizeEnable: true
+      });
+
+      // 加载通用控件（ToolBar、Scale）
+      AMap.plugin(['AMap.ToolBar','AMap.Scale'], function(){
+        map.addControl(new AMap.ToolBar({
+          position: 'RB'
+        }));
+        map.addControl(new AMap.Scale({
+          position: 'RB'
+        }));
+      });
+
+      // 尝试使用浏览器定位作为默认起点
+      if (navigator.geolocation) {
+        document.getElementById('loadingTip').style.display = 'flex';
+        
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            document.getElementById('loadingTip').style.display = 'none';
+            
+            const { longitude: lon, latitude: lat } = pos.coords;
+            console.log('定位成功，坐标：', lon, lat);
+            
+            try {
+              const res = await fetch(`http://127.0.0.1:8080/api/geocode/reverse?location=${lon},${lat}`);
+              const data = await res.json();
+              
+              let address = '我的位置';
+              if (data && data.regeocode) {
+                address = data.regeocode.formatted_address || '我的位置';
+              }
+              
+              // 创建起点标记
+              startMarker = new AMap.Marker({
+                map,
+                position: [lon, lat],
+                title: '我的位置（起点）',
+                icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-red.png',
+                animation: 'AMAP_ANIMATION_DROP'
+              });
+              
+              document.getElementById('startInput').value = address;
+              showShortTip(`已定位到您的位置：${address.length > 15 ? address.substring(0, 15) + '...' : address}`, 'success');
+              map.setCenter([lon, lat]);
+              
+            } catch (err) {
+              console.error('逆地理编码失败：', err);
+              startMarker = new AMap.Marker({
+                map,
+                position: [lon, lat],
+                title: '我的位置（起点）',
+                icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-red.png',
+                animation: 'AMAP_ANIMATION_DROP'
+              });
+              document.getElementById('startInput').value = '我的位置';
+              showShortTip('定位成功，但获取地址信息失败', 'warning');
+              map.setCenter([lon, lat]);
+            }
+          }, 
+          (err) => {
+            document.getElementById('loadingTip').style.display = 'none';
+            console.warn('浏览器定位失败：', err.message);
+            map.setCenter([116.39748, 39.90882]); // 默认中心天安门
+            
+            startMarker = new AMap.Marker({
+              map,
+              position: [116.39748, 39.90882],
+              title: '默认起点（天安门）',
+              icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-red.png',
+              animation: 'AMAP_ANIMATION_DROP'
+            });
+            
+            document.getElementById('startInput').value = '北京市东城区天安门广场';
+            showShortTip('定位失败，已使用默认位置（北京天安门）', 'error');
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          }
+        );
+      } else {
+        console.warn('浏览器不支持 geolocation');
+        map.setCenter([116.39748, 39.90882]);
+        
+        startMarker = new AMap.Marker({
+          map,
+          position: [116.39748, 39.90882],
+          title: '默认起点（天安门）',
+          icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-red.png',
+          animation: 'AMAP_ANIMATION_DROP'
+        });
+        
+        document.getElementById('startInput').value = '北京市东城区天安门广场';
+        showShortTip('浏览器不支持定位，已使用默认位置（北京天安门）', 'info');
+      }
+
+      // 点击地图设置起点
+      map.on('click', async e => {
+        try {
+          const { lng, lat } = e.lnglat;
+          const res = await fetch(`http://127.0.0.1:8080/api/geocode/reverse?location=${lng},${lat}`);
+          const data = await res.json();
+          
+          let address = '未解析到地址';
+          if (data && data.regeocode) {
+            address = data.regeocode.formatted_address;
+          }
+
+          new AMap.InfoWindow({
+            content: `<div style="padding:8px">${address}</div>`,
+            offset: new AMap.Pixel(0,-30)
+          }).open(map, [lng, lat]);
+
+          if (!startMarker) {
+            startMarker = new AMap.Marker({ 
+              map, 
+              position: [lng, lat], 
+              title: '起点',
+              icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-red.png',
+              animation: 'AMAP_ANIMATION_DROP'
+            });
+          } else {
+            startMarker.setPosition([lng, lat]);
+          }
+
+          document.getElementById('startInput').value = address;
+
+          const startTip = document.getElementById('startTip');
+          startTip.classList.add('show');
+          setTimeout(() => {
+            startTip.classList.remove('show');
+          }, 2000);
+
+          // 清除旧路线
+          if (pathLine) {
+            map.remove(pathLine);
+            pathLine = null;
+          }
+          if (pathBorderLine) {
+            map.remove(pathBorderLine);
+            pathBorderLine = null;
+          }
+          if (simTimer) {
+            clearInterval(simTimer);
+            simTimer = null;
+            if (simMarker) {
+              map.remove(simMarker);
+              simMarker = null;
+            }
+          }
+
+          // 更新坐标面板
+          if (endMarker) {
+            const startLngLat = new AMap.LngLat(lng, lat);
+            const endLngLat = endMarker.getPosition();
+            createCoordsPanel(startLngLat, endLngLat);
+          }
+
+        } catch (err) {
+          console.error('逆地理请求失败：', err);
+          alert('获取地址失败，请检查后端服务');
+        }
+      });
+    }
+
+    // 显示短期提示框
+    function showShortTip(message, type = 'info') {
+      const existingTips = document.querySelectorAll('.temp-tip');
+      existingTips.forEach(tip => tip.remove());
+      
+      const tip = document.createElement('div');
+      tip.className = `temp-tip start-tip ${type}`;
+      
+      switch(type) {
+        case 'success':
+          tip.style.backgroundColor = 'rgba(0, 180, 42, 0.9)';
+          tip.innerHTML = `<i class="bi bi-check-circle"></i> ${message}`;
+          break;
+        case 'error':
+          tip.style.backgroundColor = 'rgba(255, 87, 34, 0.9)';
+          tip.innerHTML = `<i class="bi bi-exclamation-circle"></i> ${message}`;
+          break;
+        case 'warning':
+          tip.style.backgroundColor = 'rgba(255, 193, 7, 0.9)';
+          tip.innerHTML = `<i class="bi bi-exclamation-triangle"></i> ${message}`;
+          break;
+        default:
+          tip.style.backgroundColor = 'rgba(22, 93, 255, 0.9)';
+          tip.innerHTML = `<i class="bi bi-info-circle"></i> ${message}`;
+      }
+      
+      document.body.appendChild(tip);
+      setTimeout(() => {
+        tip.classList.add('show');
+      }, 10);
+      
+      setTimeout(() => {
+        tip.classList.remove('show');
+        setTimeout(() => tip.remove(), 300);
+      }, 3000);
+    }
+
+    function initInputTips() {
+      try {
+        const acStart = new AMap.Autocomplete({ input: 'startInput' });
+        acStart.on('select', e => {
+          if (e.poi && e.poi.location) {
+            if (!startMarker) {
+              startMarker = new AMap.Marker({ 
+                map, 
+                icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-red.png',
+                animation: 'AMAP_ANIMATION_DROP'
+              });
+            }
+            startMarker.setPosition(e.poi.location);
+            map.setCenter(e.poi.location);
+          }
+        });
+
+        const acEnd = new AMap.Autocomplete({ input: 'endInput' });
+        acEnd.on('select', e => {
+          if (e.poi && e.poi.location) {
+            if (!endMarker) {
+              endMarker = new AMap.Marker({ 
+                map, 
+                icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-blue.png',
+                animation: 'AMAP_ANIMATION_DROP'
+              });
+            }
+            endMarker.setPosition(e.poi.location);
+            map.setCenter(e.poi.location);
+          }
+        });
+
+      } catch (err) {
+        console.warn('Autocomplete 初始化失败：', err);
+      }
+    }
+
+    // 语音播报
+    function speak(text) {
+      if ('speechSynthesis' in window) {
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'zh-CN'; u.rate = 1.0;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(u);
+      }
+    }
+
+    // 复制到剪贴板功能
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        const toast = document.getElementById('copyToast');
+        toast.classList.add('show');
+        setTimeout(() => {
+          toast.classList.remove('show');
+        }, 1500);
+      }).catch(err => {
+        console.error('复制失败:', err);
+        alert('复制失败，请手动复制');
+      });
+    }
+
+    // 计算两点之间的直线距离（公里）
+    function calculateDistance(startLngLat, endLngLat) {
+      const R = 6371; // 地球半径（公里）
+      const lat1 = startLngLat.lat * Math.PI / 180;
+      const lon1 = startLngLat.lng * Math.PI / 180;
+      const lat2 = endLngLat.lat * Math.PI / 180;
+      const lon2 = endLngLat.lng * Math.PI / 180;
+      
+      const dLat = lat2 - lat1;
+      const dLon = lon2 - lon1;
+      
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1) * Math.cos(lat2) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c; // 距离（公里）
+    }
+
+    // 创建坐标信息面板
+    function createCoordsPanel(startLngLat, endLngLat) {
+      const container = document.getElementById('coordsPanelContainer');
+      container.innerHTML = '';
+
+      const startAltitude = '未知（默认0米）';
+      const endAltitude = '未知（默认0米）';
+      const straightDistance = calculateDistance(startLngLat, endLngLat).toFixed(2);
+      
+      // 格式化坐标字符串
+      const startCoordStr = `${startLngLat.lng.toFixed(6)}, ${startLngLat.lat.toFixed(6)}`;
+      const endCoordStr = `${endLngLat.lng.toFixed(6)}, ${endLngLat.lat.toFixed(6)}`;
+
+      const panel = document.createElement('div');
+      panel.className = 'coords-panel';
+
+      panel.innerHTML = `
+        <div class="coords-header">
+          <div class="coords-title">
+            <i class="bi bi-geo-alt text-primary"></i>
+            坐标信息详情
+          </div>
+          <div class="coords-actions">
+            <button class="copy-btn" data-type="all" title="复制所有坐标">
+              <i class="bi bi-clipboard"></i> 复制全部
+            </button>
+          </div>
+        </div>
+        
+        <div class="coords-cards">
+          <!-- 起点信息卡片 -->
+          <div class="coords-card">
+            <div class="coords-card-title">
+              <i class="bi bi-geo-alt text-danger"></i> 起点信息
+            </div>
+            <div class="coords-grid">
+              <div class="coords-item">
+                <span class="coords-label">经度</span>
+                <span class="coords-value" data-copy="${startLngLat.lng.toFixed(6)}°">${startLngLat.lng.toFixed(6)} °</span>
+              </div>
+              <div class="coords-item">
+                <span class="coords-label">纬度</span>
+                <span class="coords-value" data-copy="${startLngLat.lat.toFixed(6)}°">${startLngLat.lat.toFixed(6)} °</span>
+              </div>
+              <div class="coords-item">
+                <span class="coords-label">高度</span>
+                <span class="coords-value" data-copy="${startAltitude}">${startAltitude}</span>
+              </div>
+              <div class="coords-item">
+                <span class="coords-label">坐标串</span>
+                <span class="coords-value" data-copy="${startCoordStr}">${startCoordStr}</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 终点信息卡片 -->
+          <div class="coords-card">
+            <div class="coords-card-title">
+              <i class="bi bi-flag text-blue"></i> 终点信息
+            </div>
+            <div class="coords-grid">
+              <div class="coords-item">
+                <span class="coords-label">经度</span>
+                <span class="coords-value" data-copy="${endLngLat.lng.toFixed(6)}°">${endLngLat.lng.toFixed(6)} °</span>
+              </div>
+              <div class="coords-item">
+                <span class="coords-label">纬度</span>
+                <span class="coords-value" data-copy="${endLngLat.lat.toFixed(6)}°">${endLngLat.lat.toFixed(6)} °</span>
+              </div>
+              <div class="coords-item">
+                <span class="coords-label">高度</span>
+                <span class="coords-value" data-copy="${endAltitude}">${endAltitude}</span>
+              </div>
+              <div class="coords-item">
+                <span class="coords-label">坐标串</span>
+                <span class="coords-value" data-copy="${endCoordStr}">${endCoordStr}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 路线概览信息 -->
+        <div class="route-summary">
+          <div class="summary-item">
+            <i class="bi bi-ruler-horizontal"></i>
+            <span>直线距离：</span>
+            <span class="summary-value">${straightDistance} 公里</span>
+          </div>
+          <div class="summary-item">
+            <i class="bi bi-compass"></i>
+            <span>起点坐标：</span>
+            <span class="summary-value">${startCoordStr}</span>
+          </div>
+          <div class="summary-item">
+            <i class="bi bi-flag"></i>
+            <span>终点坐标：</span>
+            <span class="summary-value">${endCoordStr}</span>
+          </div>
+        </div>
+      `;
+
+      container.appendChild(panel);
+
+      // 绑定复制事件
+      panel.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const type = this.getAttribute('data-type');
+          if (type === 'all') {
+            const allCoords = `起点：${startCoordStr}\n终点：${endCoordStr}\n直线距离：${straightDistance} 公里`;
+            copyToClipboard(allCoords);
+          }
+        });
+      });
+
+      // 单个值复制功能
+      panel.querySelectorAll('.coords-value[data-copy]').forEach(item => {
+        item.addEventListener('click', function() {
+          const text = this.getAttribute('data-copy');
+          copyToClipboard(text);
+        });
+        item.style.cursor = 'pointer';
+        item.addEventListener('mouseover', function() {
+          this.style.backgroundColor = '#f0f7ff';
+          this.style.borderColor = '#e1f0ff';
+        });
+        item.addEventListener('mouseout', function() {
+          this.style.backgroundColor = 'white';
+          this.style.borderColor = '#f0f2f5';
+        });
+      });
+    }
+
+    // 获取不同出行方式的路线样式
+    function getRouteStyle(mode, isShortDistance = false) {
+      const baseStyles = {
+        driving: {
+          color: '#165DFF',
+          weight: isShortDistance ? 8 : 6,
+          opacity: isShortDistance ? 0.95 : 0.9,
+          style: 'solid'
+        },
+        walking: {
+          color: '#00B42A',
+          weight: isShortDistance ? 7 : 4,
+          opacity: isShortDistance ? 0.95 : 0.8,
+          style: 'solid'
+        }
+      };
+      return baseStyles[mode] || baseStyles.driving;
+    }
+
+    // 计算路线的实际长度（米）
+    function calculateRouteLength(coords) {
+      let length = 0;
+      for (let i = 1; i < coords.length; i++) {
+        const prev = new AMap.LngLat(coords[i-1][0], coords[i-1][1]);
+        const curr = new AMap.LngLat(coords[i][0], coords[i][1]);
+        length += prev.distance(curr);
+      }
+      return length;
+    }
+
+    // 搜索路线（核心修改部分）
+    async function searchRoute() {
+      const start = document.getElementById('startInput').value.trim();
+      const end = document.getElementById('endInput').value.trim();
+      const mode = document.getElementById('routeMode').value;
+
+      if (!start) { alert('请填写起点！'); return; }
+      if (!end) { alert('请填写终点！'); return; }
+
+      // 清除旧的路线和标记
+      if (pathLine) map.remove(pathLine);
+      if (pathBorderLine) map.remove(pathBorderLine);
+      if (endMarker) map.remove(endMarker);
+      endMarker = null;
+
+      // 根据出行方式构造请求URL
+      let url = '';
+      if (mode === 'walking') {
+        url = `http://127.0.0.1:8080/api/route/walking?origin=${encodeURIComponent(start)}&destination=${encodeURIComponent(end)}`;
+      } else {
+        url = `http://127.0.0.1:8080/api/route/driving?origin=${encodeURIComponent(start)}&destination=${encodeURIComponent(end)}`;
+      }
+
+      try {
+        document.getElementById('loadingTip').style.display = 'flex';
+        
+        const res = await fetch(url);
+        const data = await res.json();
+        
+        document.getElementById('loadingTip').style.display = 'none';
+        console.log(`${mode} 路线返回：`, data);
+
+        if (data && data.route && data.route.paths && data.route.paths.length > 0) {
+          const path = data.route.paths[0];
+          const coords = [];
+          
+          // 解析路线坐标
+          path.steps.forEach(step => {
+            const pts = step.polyline.split(';');
+            pts.forEach(p => {
+              const [lon, lat] = p.split(',');
+              coords.push([parseFloat(lon), parseFloat(lat)]);
+            });
+          });
+
+          // 计算路线长度，判断是否为短距离（小于500米视为短距离）
+          const routeLength = calculateRouteLength(coords);
+          const isShortDistance = routeLength < 500;
+          console.log(`路线长度：${routeLength.toFixed(2)}米，是否短距离：${isShortDistance}`);
+
+          // 获取路线样式
+          const routeStyle = getRouteStyle(mode, isShortDistance);
+          
+          // 创建路线边框（增强短距离路线的辨识度）
+          if (isShortDistance) {
+            pathBorderLine = new AMap.Polyline({ 
+              map, 
+              path: coords, 
+              strokeColor: mode === 'driving' ? '#0E42D2' : '#009A22',
+              strokeWeight: routeStyle.weight + 4,
+              strokeOpacity: 0.3,
+              strokeStyle: 'solid',
+              zIndex: 49
+            });
+          }
+
+          // 创建主路线
+          pathLine = new AMap.Polyline({ 
+            map, 
+            path: coords, 
+            strokeColor: routeStyle.color, 
+            strokeWeight: routeStyle.weight, 
+            strokeOpacity: routeStyle.opacity,
+            strokeStyle: routeStyle.style,
+            zIndex: 50,
+            className: `route-polyline ${isShortDistance ? 'short-distance pulse-animation' : ''}`
+          });
+
+          // 创建起点标记（如果不存在）
+          if (!startMarker && coords.length > 0) {
+            startMarker = new AMap.Marker({ 
+              map, 
+              position: coords[0], 
+              title: '起点',
+              icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-red.png',
+              animation: 'AMAP_ANIMATION_DROP'
+            });
+          } else if (startMarker && coords.length > 0) {
+            // 更新起点位置（确保与路线起点一致）
+            startMarker.setPosition(coords[0]);
+          }
+
+          // 创建终点标记
+          if (coords.length > 0) {
+            const last = coords[coords.length - 1];
+            endMarker = new AMap.Marker({ 
+              map, 
+              position: last, 
+              title: '终点',
+              icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-blue.png',
+              animation: 'AMAP_ANIMATION_DROP'
+            });
+          }
+
+          // 关键优化：确保所有元素都已添加到地图后再调整视野
+          // 使用setTimeout确保地图元素渲染完成
+          setTimeout(() => {
+            // 收集所有需要显示在视野内的元素
+            const mapElements = [pathLine];
+            if (startMarker) mapElements.push(startMarker);
+            if (endMarker) mapElements.push(endMarker);
+            if (pathBorderLine) mapElements.push(pathBorderLine);
+
+            // 强制调整地图视野，确保所有元素可见
+            map.setFitView(mapElements, {
+              padding: [80, 80, 80, 80], // 增加边距，避免被控件遮挡
+              delay: 0 // 立即执行，不延迟
+            });
+
+            // 对于极短距离路线，进一步提高缩放级别
+            if (isShortDistance) {
+              // 延迟一点时间确保setFitView完成
+              setTimeout(() => {
+                const currentZoom = map.getZoom();
+                // 最多增加3级缩放，但不超过最大级别18
+                map.setZoom(Math.min(currentZoom + 3, 18));
+              }, 300);
+            }
+          }, 200); // 等待200ms确保元素已渲染
+
+          // 出行方式文本
+          const modeText = mode === 'walking' ? '步行' : '驾车';
+          
+          // 语音播报
+          speak(`${modeText}路线规划成功，全程${(path.distance/1000).toFixed(2)}公里，需要大约${Math.ceil(path.duration/60)}分钟`);
+
+          // 提示框
+          const alertDiv = document.createElement('div');
+          alertDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            border-left: 4px solid ${routeStyle.color};
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.5s ease;
+          `;
+          
+          // 出行方式图标
+          const modeIcon = mode === 'walking' ? 
+            '<i class="bi bi-person-walking text-success" style="font-size: 1.2rem;"></i>' : 
+            '<i class="bi bi-car text-primary" style="font-size: 1.2rem;"></i>';
+          
+          // 短距离时增加提示信息
+          const shortDistanceTip = isShortDistance ? '<br><small class="text-warning">（短距离路线已增强显示）</small>' : '';
+          
+          alertDiv.innerHTML = `
+            ${modeIcon}
+            <div>
+              <strong>${modeText}路线规划完成！</strong>${shortDistanceTip}<br>
+              <small>距离：${(path.distance/1000).toFixed(2)} 公里 | 预计时间：${Math.ceil(path.duration/60)} 分钟</small>
+            </div>
+          `;
+          document.body.appendChild(alertDiv);
+          
+          setTimeout(() => {
+            alertDiv.style.opacity = '0';
+            setTimeout(() => alertDiv.remove(), 300);
+          }, 3000);
+
+          // 创建坐标信息面板
+          if (startMarker && endMarker) {
+            const startLngLat = startMarker.getPosition();
+            const endLngLat = endMarker.getPosition();
+            createCoordsPanel(startLngLat, endLngLat);
+          } else if (coords.length > 0) {
+            const startLngLat = new AMap.LngLat(coords[0][0], coords[0][1]);
+            const endLngLat = new AMap.LngLat(coords[coords.length-1][0], coords[coords.length-1][1]);
+            createCoordsPanel(startLngLat, endLngLat);
+          }
+
+        } else {
+          alert(`未找到${mode === 'walking' ? '步行' : '驾车'}路线，请检查起终点`);
+        }
+      } catch (err) {
+        console.error(`${mode}路线请求失败：`, err);
+        document.getElementById('loadingTip').style.display = 'none';
+        alert(`${mode === 'walking' ? '步行' : '驾车'}路线搜索失败，请检查后端服务`);
+      }
+    }
+
+    // 导出函数
+    function exportRoute(type) {
+      if (!pathLine) { alert('请先搜索路线，再导出！'); return; }
+      const coords = pathLine.getPath();
+      const mode = document.getElementById('routeMode').value;
+      
+      if (type === 'json') {
+        const arr = coords.map(p => ({ lng: p.lng, lat: p.lat }));
+        downloadFile(JSON.stringify(arr, null, 2), `route_${mode}.json`, 'application/json');
+      } else if (type === 'kml') {
+        let kml = `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n  <Document>\n    <Placemark>\n      <LineString>\n        <extrude>1</extrude>\n        <tessellate>1</tessellate>\n        <altitudeMode>relativeToGround</altitudeMode>\n        <coordinates>`;
+        coords.forEach(p => { kml += `${p.lng},${p.lat},0 `; });
+        kml += `</coordinates>\n      </LineString>\n    </Placemark>\n  </Document>\n</kml>`;
+        downloadFile(kml, `route_${mode}.kml`, 'application/vnd.google-earth.kml+xml');
+      }
+    }
+
+    function downloadFile(content, filename, mime) {
+      const blob = new Blob([content], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; 
+      a.download = filename; 
+      a.click(); 
+      URL.revokeObjectURL(url);
+      
+      const tip = document.createElement('div');
+      tip.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: rgba(0,0,0,0.7);
+        color: white;
+        padding: 8px 15px;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        z-index: 1000;
+        animation: fadeInUp 0.3s ease;
+      `;
+      tip.textContent = `文件 "${filename}" 开始下载...`;
+      document.body.appendChild(tip);
+      setTimeout(() => tip.remove(), 2000);
+    }
+
+    // 清空路线
+    function clearRoute() {
+      if (pathLine) { map.remove(pathLine); pathLine = null; }
+      if (pathBorderLine) { map.remove(pathBorderLine); pathBorderLine = null; }
+      if (endMarker) { map.remove(endMarker); endMarker = null; }
+      document.getElementById('endInput').value = '';
+      
+      if (simTimer) { 
+        clearInterval(simTimer); 
+        simTimer = null; 
+        if (simMarker) map.remove(simMarker); 
+        simMarker = null; 
+      }
+      
+      document.getElementById('coordsPanelContainer').innerHTML = '';
+      
+      const alertDiv = document.createElement('div');
+      alertDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        z-index: 1000;
+        animation: fadeInUp 0.3s ease;
+      `;
+      alertDiv.innerHTML = `<i class="bi bi-info-circle text-secondary me-1"></i> 已清空路线与终点`;
+      document.body.appendChild(alertDiv);
+      setTimeout(() => alertDiv.remove(), 2000);
+    }
+
+    // 初始化
+    window.onload = function() {
+      initMap();
+      initInputTips();
+      document.getElementById('btnSearch').onclick = searchRoute;
+      document.getElementById('btnExportJSON').onclick = () => exportRoute('json');
+      document.getElementById('btnExportKML').onclick = () => exportRoute('kml');
+      document.getElementById('btnClear').onclick = clearRoute;
+    };
+  </script>
+</body>
+</html>

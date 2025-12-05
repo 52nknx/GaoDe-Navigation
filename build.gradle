@@ -1,0 +1,28 @@
+plugins {
+    id 'org.springframework.boot' version '2.7.15'
+    id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+    id 'java'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '1.8'
+
+repositories {
+    mavenCentral() // 从中央仓库拉取依赖
+}
+
+dependencies {
+    // Spring Web（支持REST接口）
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'com.alibaba.fastjson2:fastjson2:2.0.52'
+
+
+    // 测试依赖
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'io.projectreactor:reactor-test'
+}
+
+test {
+    useJUnitPlatform() // 使用JUnit 5测试
+}

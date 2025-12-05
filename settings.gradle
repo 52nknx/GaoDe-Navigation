@@ -1,0 +1,7 @@
+pluginManagement {
+    repositories {
+        maven { url = 'https://repo.spring.io/snapshot' }
+        gradlePluginPortal()
+    }
+}
+rootProject.name = 'amap-nav' // 项目名称，与后端工程名一致

@@ -573,8 +573,20 @@
       gap: 6px;
     }
   </style>
-  <!-- 高德 JS API v2.0 -->
-  <script src="https://webapi.amap.com/maps?v=2.0&key=18ebde1f5561606c635141c85bd2ead4"></script>
+  <script src="config.js"></script>
+  <script>
+    window.AppConfig = Object.assign({
+      API_BASE_URL: 'http://127.0.0.1:8080/api',
+      AMAP_JS_KEY: ''
+    }, window.AppConfig || {});
+
+    if (!window.AppConfig.AMAP_JS_KEY || window.AppConfig.AMAP_JS_KEY === 'replace-with-your-amap-js-api-key') {
+      alert('请先复制 config.example.js 为 config.js，并填写高德 JS API Key。');
+    } else {
+      document.write('<script src="https://webapi.amap.com/maps?v=2.0&key=' +
+        encodeURIComponent(window.AppConfig.AMAP_JS_KEY) + '"><\/script>');
+    }
+  </script>
 </head>
 <body class="container mt-4">
   <!-- 页面加载动画 -->
@@ -684,6 +696,18 @@
       }, 800);
     });
 
+    const API_BASE_URL = window.AppConfig.API_BASE_URL.replace(/\/$/, '');
+
+    function apiUrl(path, params = {}) {
+      const url = new URL(`${API_BASE_URL}${path}`);
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          url.searchParams.set(key, value);
+        }
+      });
+      return url.toString();
+    }
+
     // 全局变量
     let map, startMarker, endMarker, pathLine, pathBorderLine, simMarker, simTimer;
 
@@ -722,7 +746,7 @@
             console.log('定位成功，坐标：', lon, lat);
             
             try {
-              const res = await fetch(`http://127.0.0.1:8080/api/geocode/reverse?location=${lon},${lat}`);
+              const res = await fetch(apiUrl('/geocode/reverse', { location: `${lon},${lat}` }));
               const data = await res.json();
               
               let address = '我的位置';
@@ -799,7 +823,7 @@
       map.on('click', async e => {
         try {
           const { lng, lat } = e.lnglat;
-          const res = await fetch(`http://127.0.0.1:8080/api/geocode/reverse?location=${lng},${lat}`);
+          const res = await fetch(apiUrl('/geocode/reverse', { location: `${lng},${lat}` }));
           const data = await res.json();
           
           let address = '未解析到地址';
@@ -1159,12 +1183,10 @@
       endMarker = null;
 
       // 根据出行方式构造请求URL
-      let url = '';
-      if (mode === 'walking') {
-        url = `http://127.0.0.1:8080/api/route/walking?origin=${encodeURIComponent(start)}&destination=${encodeURIComponent(end)}`;
-      } else {
-        url = `http://127.0.0.1:8080/api/route/driving?origin=${encodeURIComponent(start)}&destination=${encodeURIComponent(end)}`;
-      }
+      const url = apiUrl(`/route/${mode}`, {
+        origin: start,
+        destination: end
+      });
 
       try {
         document.getElementById('loadingTip').style.display = 'flex';

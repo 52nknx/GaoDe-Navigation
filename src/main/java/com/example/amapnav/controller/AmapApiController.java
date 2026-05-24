@@ -4,11 +4,14 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
 import java.util.regex.Pattern;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -19,20 +22,52 @@ public class AmapApiController {
     @Value("${gaode.key}")
     private String apiKey;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
-    // 经纬度格式正则（xx.xxxx,xx.xxxx）
-    private static final Pattern COORD_PATTERN = Pattern.compile("^[0-9.]+,[0-9.]+$");
+    public AmapApiController(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+
+    // 经纬度格式正则（支持负数和空格，如 116.39748,39.90882）
+    private static final Pattern COORD_PATTERN = Pattern.compile("^-?\\d+(\\.\\d+)?\\s*,\\s*-?\\d+(\\.\\d+)?$");
+
+    private void ensureApiKeyConfigured() {
+        if (apiKey == null || apiKey.trim().isEmpty()) {
+            throw new IllegalStateException("未配置高德 Web 服务 Key，请设置环境变量 GAODE_KEY 或 application.properties 中的 gaode.key");
+        }
+    }
+
+    private URI amapUri(UriComponentsBuilder builder) {
+        ensureApiKeyConfigured();
+        return builder
+                .queryParam("key", apiKey)
+                .build()
+                .encode()
+                .toUri();
+    }
+
+    private ResponseEntity<String> okJson(String body) {
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(body);
+    }
+
+    private ResponseEntity<String> errorJson(String message) {
+        JSONObject body = new JSONObject();
+        body.put("status", "0");
+        body.put("message", message);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body.toJSONString());
+    }
 
     /**
      * 地址转坐标通用方法
      */
     private String getLocationFromAddress(String address) {
-        String url = String.format(
-                "https://restapi.amap.com/v3/geocode/geo?address=%s&key=%s",
-                address, apiKey
+        URI uri = amapUri(
+                UriComponentsBuilder.fromHttpUrl("https://restapi.amap.com/v3/geocode/geo")
+                        .queryParam("address", address)
         );
-        String resp = restTemplate.getForObject(url, String.class);
+        String resp = restTemplate.getForObject(uri, String.class);
         JSONObject obj = JSON.parseObject(resp);
 
         if (!"1".equals(obj.getString("status"))) {
@@ -51,7 +86,8 @@ public class AmapApiController {
      * 统一处理坐标参数（地址自动转坐标）
      */
     private String processLocationParam(String param) {
-        return COORD_PATTERN.matcher(param).matches() ? param : getLocationFromAddress(param);
+        String value = param == null ? "" : param.trim();
+        return COORD_PATTERN.matcher(value).matches() ? value.replaceAll("\\s+", "") : getLocationFromAddress(value);
     }
 
     // 1. 输入提示接口
@@ -60,11 +96,17 @@ public class AmapApiController {
             @RequestParam String keywords,
             @RequestParam(required = false) String city) {
 
-        String url = "https://restapi.amap.com/v3/assistant/inputtips?keywords=" + keywords +
-                "&city=" + (city == null ? "" : city) + "&key=" + apiKey;
-
-        String result = restTemplate.getForObject(url, String.class);
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
+        try {
+            URI uri = amapUri(
+                    UriComponentsBuilder.fromHttpUrl("https://restapi.amap.com/v3/assistant/inputtips")
+                            .queryParam("keywords", keywords)
+                            .queryParam("city", city == null ? "" : city)
+            );
+            String result = restTemplate.getForObject(uri, String.class);
+            return okJson(result);
+        } catch (Exception e) {
+            return errorJson("输入提示调用失败：" + e.getMessage());
+        }
     }
 
     // 2. 逆地理编码接口
@@ -73,11 +115,14 @@ public class AmapApiController {
             @RequestParam("location") String location) {
 
         try {
-            String url = "https://restapi.amap.com/v3/geocode/regeo?location=" + location + "&key=" + apiKey;
-            String response = restTemplate.getForObject(url, String.class);
-            return ResponseEntity.ok(response);
+            URI uri = amapUri(
+                    UriComponentsBuilder.fromHttpUrl("https://restapi.amap.com/v3/geocode/regeo")
+                            .queryParam("location", location)
+            );
+            String response = restTemplate.getForObject(uri, String.class);
+            return okJson(response);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("逆地理编码调用失败：" + e.getMessage());
+            return errorJson("逆地理编码调用失败：" + e.getMessage());
         }
     }
 
@@ -92,21 +137,21 @@ public class AmapApiController {
             String originLoc = processLocationParam(origin);
             String destLoc = processLocationParam(destination);
 
-            StringBuilder urlBuilder = new StringBuilder("https://restapi.amap.com/v3/direction/driving");
-            urlBuilder.append("?origin=").append(originLoc)
-                    .append("&destination=").append(destLoc)
-                    .append("&key=").append(apiKey)
-                    .append("&extensions=all")  // 返回完整路线信息
-                    .append("&strategy=0");
+            UriComponentsBuilder builder = UriComponentsBuilder
+                    .fromHttpUrl("https://restapi.amap.com/v3/direction/driving")
+                    .queryParam("origin", originLoc)
+                    .queryParam("destination", destLoc)
+                    .queryParam("extensions", "all")
+                    .queryParam("strategy", "0");
 
             if (waypoints != null && !waypoints.isEmpty()) {
-                urlBuilder.append("&waypoints=").append(waypoints);
+                builder.queryParam("waypoints", waypoints.trim());
             }
 
-            String response = restTemplate.getForObject(urlBuilder.toString(), String.class);
-            return ResponseEntity.ok(response);
+            String response = restTemplate.getForObject(amapUri(builder), String.class);
+            return okJson(response);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("驾车路线规划失败：" + e.getMessage());
+            return errorJson("驾车路线规划失败：" + e.getMessage());
         }
     }
 
@@ -121,14 +166,16 @@ public class AmapApiController {
             String originLoc = processLocationParam(origin);
             String destLoc = processLocationParam(destination);
 
-            String url = String.format(
-                    "https://restapi.amap.com/v3/direction/walking?origin=%s&destination=%s&key=%s&extensions=all",
-                    originLoc, destLoc, apiKey
+            URI uri = amapUri(
+                    UriComponentsBuilder.fromHttpUrl("https://restapi.amap.com/v3/direction/walking")
+                            .queryParam("origin", originLoc)
+                            .queryParam("destination", destLoc)
+                            .queryParam("extensions", "all")
             );
-            String response = restTemplate.getForObject(url, String.class);
-            return ResponseEntity.ok(response);
+            String response = restTemplate.getForObject(uri, String.class);
+            return okJson(response);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("步行路线规划失败：" + e.getMessage());
+            return errorJson("步行路线规划失败：" + e.getMessage());
         }
     }
 
@@ -137,11 +184,16 @@ public class AmapApiController {
     public ResponseEntity<String> trafficStatusQuery(
             @RequestParam("rect") String rect) {
 
-        String url = String.format(
-                "https://restapi.amap.com/v3/traffic/status/rectangle?rectangle=%s&key=%s&extensions=all",
-                rect, apiKey
-        );
-        String response = restTemplate.getForObject(url, String.class);
-        return ResponseEntity.ok(response);
+        try {
+            URI uri = amapUri(
+                    UriComponentsBuilder.fromHttpUrl("https://restapi.amap.com/v3/traffic/status/rectangle")
+                            .queryParam("rectangle", rect)
+                            .queryParam("extensions", "all")
+            );
+            String response = restTemplate.getForObject(uri, String.class);
+            return okJson(response);
+        } catch (Exception e) {
+            return errorJson("交通状态查询失败：" + e.getMessage());
+        }
     }
 }

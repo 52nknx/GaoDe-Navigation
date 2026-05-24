@@ -62,23 +62,58 @@
 
 ### 1. 后端 Web 服务 Key
 
-后端通过 `src/main/resources/application.properties` 中的 `gaode.key` 调用高德 Web 服务接口：
+后端通过 `src/main/resources/application.properties` 中的 `gaode.key` 调用高德 Web 服务接口。默认配置会从环境变量 `GAODE_KEY` 读取：
 
 ```properties
-gaode.key=你的高德Web服务Key
+gaode.key=${GAODE_KEY:}
+```
+
+推荐在本地启动前设置环境变量。
+
+Windows PowerShell：
+
+```powershell
+$env:GAODE_KEY="你的高德Web服务Key"
+```
+
+macOS 或 Linux：
+
+```bash
+export GAODE_KEY="你的高德Web服务Key"
 ```
 
 该 Key 会用于地址编码、逆地理编码、驾车路线、步行路线和交通状态查询等后端接口。
 
 ### 2. 前端 JS API Key
 
-前端地图通过 `index.html` 中的高德 JS API 脚本加载：
+前端地图配置使用本地 `config.js` 文件。仓库中提供了示例文件：
 
-```html
-<script src="https://webapi.amap.com/maps?v=2.0&key=你的高德JSAPIKey"></script>
+```text
+config.example.js
 ```
 
-将其中的 `key` 参数替换为自己的高德地图 JS API Key。
+复制一份作为本地配置：
+
+```powershell
+Copy-Item config.example.js config.js
+```
+
+macOS 或 Linux：
+
+```bash
+cp config.example.js config.js
+```
+
+然后编辑 `config.js`：
+
+```javascript
+window.AppConfig = {
+  API_BASE_URL: "http://127.0.0.1:8080/api",
+  AMAP_JS_KEY: "你的高德JSAPIKey"
+};
+```
+
+`config.js` 已加入 `.gitignore`，不会被提交到仓库。
 
 > 注意：不要在公开仓库中提交真实可用的 API Key。如果 Key 已经公开过，建议到高德开放平台控制台重置或删除旧 Key。
 
@@ -232,8 +267,8 @@ http://127.0.0.1:8080/api/traffic/status?rect=116.351147,39.966309;116.357134,39
 
 ## 使用流程
 
-1. 配置后端 Web 服务 Key。
-2. 配置前端 JS API Key。
+1. 设置后端环境变量 `GAODE_KEY`。
+2. 复制 `config.example.js` 为 `config.js`，填写前端 JS API Key。
 3. 启动 Spring Boot 后端服务。
 4. 打开 `index.html`。
 5. 输入起点和终点。
@@ -253,11 +288,11 @@ http://127.0.0.1:8080
 
 ### 地图无法加载
 
-请检查 `index.html` 中的高德 JS API Key 是否正确，以及当前网络是否可以访问高德地图 JS API。
+请检查 `config.js` 中的 `AMAP_JS_KEY` 是否正确，以及当前网络是否可以访问高德地图 JS API。
 
 ### 地址解析失败
 
-请检查后端 `gaode.key` 是否可用，且该 Key 是否开通了对应的高德 Web 服务接口权限。
+请检查后端环境变量 `GAODE_KEY` 是否可用，且该 Key 是否开通了对应的高德 Web 服务接口权限。
 
 ### 浏览器定位失败
 
